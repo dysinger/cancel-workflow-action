@@ -2880,9 +2880,7 @@ async function main() {
                 workflow_id
             });
             console.log(`Found ${data.total_count} runs total.`);
-            const runningWorkflows = data.workflow_runs.filter(workflow => workflow.status !== 'completed');
-            console.log(`Found ${runningWorkflows.length} runs in progress.`);
-            for (const { id, head_sha, status } of runningWorkflows) {
+            for (const { id, head_sha, status } of data.workflow_runs) {
                 console.log('Cancelling another run: ', { id, head_sha, status });
                 const res = await octokit.actions.cancelWorkflowRun({
                     owner,
