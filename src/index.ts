@@ -56,7 +56,7 @@ async function main() {
       });
       console.log(`Found ${data.total_count} runs total.`);
       for (const {id, head_sha, status} of data.workflow_runs) {
-        if ( status != 'completed' ) {
+        if ( status != 'completed' && id !== Number(GITHUB_RUN_ID) ) {
           console.log('Cancelling: ', {id, head_sha, status});
           const res = await octokit.actions.cancelWorkflowRun({
             owner,
