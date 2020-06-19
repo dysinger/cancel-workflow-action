@@ -56,13 +56,15 @@ async function main() {
       });
       console.log(`Found ${data.total_count} runs total.`);
       for (const {id, head_sha, status} of data.workflow_runs) {
-        console.log('Cancelling another run: ', {id, head_sha, status});
-        const res = await octokit.actions.cancelWorkflowRun({
-          owner,
-          repo,
-          run_id: id
-        });
-        console.log(`Cancel run ${id} responded with status ${res.status}`);
+        if ( status != 'completed' ) {
+          console.log('Cancelling another run: ', {id, head_sha, status});
+          const res = await octokit.actions.cancelWorkflowRun({
+            owner,
+            repo,
+            run_id: id
+          });
+          console.log(`Cancel run ${id} responded with status ${res.status}`);
+        }
       }
     } catch (e) {
       const msg = e.message || e;
