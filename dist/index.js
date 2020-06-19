@@ -367,9 +367,9 @@ const windowsRelease = release => {
 	if ((!release || release === os.release()) && ['6.1', '6.2', '6.3', '10.0'].includes(ver)) {
 		let stdout;
 		try {
-			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
-		} catch (_) {
 			stdout = execa.sync('wmic', ['os', 'get', 'Caption']).stdout || '';
+		} catch (_) {
+			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
 		}
 
 		const year = (stdout.match(/2008|2012|2016|2019/) || [])[0];
@@ -922,69 +922,6 @@ function checkMode (stat, options) {
 /***/ (function(module) {
 
 module.exports = require("https");
-
-/***/ }),
-
-/***/ 257:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var deprecation = __webpack_require__(692);
-var once = _interopDefault(__webpack_require__(969));
-
-const logOnce = once(deprecation => console.warn(deprecation));
-/**
- * Error with extra properties to help with debugging
- */
-
-class RequestError extends Error {
-  constructor(message, statusCode, options) {
-    super(message); // Maintains proper stack trace (only available on V8)
-
-    /* istanbul ignore next */
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-
-    this.name = "HttpError";
-    this.status = statusCode;
-    Object.defineProperty(this, "code", {
-      get() {
-        logOnce(new deprecation.Deprecation("[@octokit/request-error] `error.code` is deprecated, use `error.status`."));
-        return statusCode;
-      }
-
-    });
-    this.headers = options.headers || {}; // redact request credentials without mutating original request options
-
-    const requestCopy = Object.assign({}, options.request);
-
-    if (options.request.headers.authorization) {
-      requestCopy.headers = Object.assign({}, options.request.headers, {
-        authorization: options.request.headers.authorization.replace(/ .*$/, " [REDACTED]")
-      });
-    }
-
-    requestCopy.url = requestCopy.url // client_id & client_secret can be passed as URL query parameters to increase rate limit
-    // see https://developer.github.com/v3/#increasing-the-unauthenticated-rate-limit-for-oauth-applications
-    .replace(/\bclient_secret=\w+/g, "client_secret=[REDACTED]") // OAuth tokens can be passed as URL query parameters, although it is not recommended
-    // see https://developer.github.com/v3/#oauth2-token-sent-in-a-header
-    .replace(/\baccess_token=\w+/g, "access_token=[REDACTED]");
-    this.request = requestCopy;
-  }
-
-}
-
-exports.RequestError = RequestError;
-//# sourceMappingURL=index.js.map
-
 
 /***/ }),
 
@@ -2710,7 +2647,7 @@ function coerce (version) {
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-const VERSION = "2.2.1";
+const VERSION = "2.2.3";
 
 /**
  * Some “list” response that can be paginated have a different response structure
@@ -2889,7 +2826,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -2940,11 +2877,10 @@ async function main() {
             const { data } = await octokit.actions.listWorkflowRuns({
                 owner,
                 repo,
-                workflow_id,
-                branch
+                workflow_id
             });
             console.log(`Found ${data.total_count} runs total.`);
-            const runningWorkflows = data.workflow_runs.filter(workflow => workflow.head_sha !== headSha && workflow.status !== 'completed');
+            const runningWorkflows = data.workflow_runs.filter(workflow => workflow.status !== 'completed');
             console.log(`Found ${runningWorkflows.length} runs in progress.`);
             for (const { id, head_sha, status } of runningWorkflows) {
                 console.log('Cancelling another run: ', { id, head_sha, status });
@@ -3372,7 +3308,7 @@ function withDefaults(oldDefaults, newDefaults) {
   });
 }
 
-const VERSION = "6.0.1";
+const VERSION = "6.0.3";
 
 const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`; // DEFAULTS has all properties set that EndpointOptions has, except url.
 // So we use RequestParameters and add method as additional required property.
@@ -3655,125 +3591,119 @@ function _objectSpread2(target) {
   return target;
 }
 
-const VERSION = "2.5.3";
+const VERSION = "2.5.4";
 
-let Octokit =
-/** @class */
-(() => {
-  class Octokit {
-    constructor(options = {}) {
-      const hook = new beforeAfterHook.Collection();
-      const requestDefaults = {
-        baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
-        headers: {},
-        request: Object.assign({}, options.request, {
-          hook: hook.bind(null, "request")
-        }),
-        mediaType: {
-          previews: [],
-          format: ""
-        }
-      }; // prepend default user agent with `options.userAgent` if set
-
-      requestDefaults.headers["user-agent"] = [options.userAgent, `octokit-core.js/${VERSION} ${universalUserAgent.getUserAgent()}`].filter(Boolean).join(" ");
-
-      if (options.baseUrl) {
-        requestDefaults.baseUrl = options.baseUrl;
+class Octokit {
+  constructor(options = {}) {
+    const hook = new beforeAfterHook.Collection();
+    const requestDefaults = {
+      baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
+      headers: {},
+      request: Object.assign({}, options.request, {
+        hook: hook.bind(null, "request")
+      }),
+      mediaType: {
+        previews: [],
+        format: ""
       }
+    }; // prepend default user agent with `options.userAgent` if set
 
-      if (options.previews) {
-        requestDefaults.mediaType.previews = options.previews;
-      }
+    requestDefaults.headers["user-agent"] = [options.userAgent, `octokit-core.js/${VERSION} ${universalUserAgent.getUserAgent()}`].filter(Boolean).join(" ");
 
-      if (options.timeZone) {
-        requestDefaults.headers["time-zone"] = options.timeZone;
-      }
+    if (options.baseUrl) {
+      requestDefaults.baseUrl = options.baseUrl;
+    }
 
-      this.request = request.request.defaults(requestDefaults);
-      this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
-        baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
-      }));
-      this.log = Object.assign({
-        debug: () => {},
-        info: () => {},
-        warn: console.warn.bind(console),
-        error: console.error.bind(console)
-      }, options.log);
-      this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
-      //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
-      // (2) If only `options.auth` is set, use the default token authentication strategy.
-      // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
-      // TODO: type `options.auth` based on `options.authStrategy`.
+    if (options.previews) {
+      requestDefaults.mediaType.previews = options.previews;
+    }
 
-      if (!options.authStrategy) {
-        if (!options.auth) {
-          // (1)
-          this.auth = async () => ({
-            type: "unauthenticated"
-          });
-        } else {
-          // (2)
-          const auth = authToken.createTokenAuth(options.auth); // @ts-ignore  ¯\_(ツ)_/¯
+    if (options.timeZone) {
+      requestDefaults.headers["time-zone"] = options.timeZone;
+    }
 
-          hook.wrap("request", auth.hook);
-          this.auth = auth;
-        }
+    this.request = request.request.defaults(requestDefaults);
+    this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
+      baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
+    }));
+    this.log = Object.assign({
+      debug: () => {},
+      info: () => {},
+      warn: console.warn.bind(console),
+      error: console.error.bind(console)
+    }, options.log);
+    this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
+    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
+    // (2) If only `options.auth` is set, use the default token authentication strategy.
+    // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
+    // TODO: type `options.auth` based on `options.authStrategy`.
+
+    if (!options.authStrategy) {
+      if (!options.auth) {
+        // (1)
+        this.auth = async () => ({
+          type: "unauthenticated"
+        });
       } else {
-        const auth = options.authStrategy(Object.assign({
-          request: this.request
-        }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
+        // (2)
+        const auth = authToken.createTokenAuth(options.auth); // @ts-ignore  ¯\_(ツ)_/¯
 
         hook.wrap("request", auth.hook);
         this.auth = auth;
-      } // apply plugins
-      // https://stackoverflow.com/a/16345172
-
-
-      const classConstructor = this.constructor;
-      classConstructor.plugins.forEach(plugin => {
-        Object.assign(this, plugin(this, options));
-      });
-    }
-
-    static defaults(defaults) {
-      const OctokitWithDefaults = class extends this {
-        constructor(...args) {
-          const options = args[0] || {};
-          super(Object.assign({}, defaults, options, options.userAgent && defaults.userAgent ? {
-            userAgent: `${options.userAgent} ${defaults.userAgent}`
-          } : null));
-        }
-
-      };
-      return OctokitWithDefaults;
-    }
-    /**
-     * Attach a plugin (or many) to your Octokit instance.
-     *
-     * @example
-     * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
-     */
-
-
-    static plugin(p1, ...p2) {
-      var _a;
-
-      if (p1 instanceof Array) {
-        console.warn(["Passing an array of plugins to Octokit.plugin() has been deprecated.", "Instead of:", "  Octokit.plugin([plugin1, plugin2, ...])", "Use:", "  Octokit.plugin(plugin1, plugin2, ...)"].join("\n"));
       }
+    } else {
+      const auth = options.authStrategy(Object.assign({
+        request: this.request
+      }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
 
-      const currentPlugins = this.plugins;
-      let newPlugins = [...(p1 instanceof Array ? p1 : [p1]), ...p2];
-      const NewOctokit = (_a = class extends this {}, _a.plugins = currentPlugins.concat(newPlugins.filter(plugin => !currentPlugins.includes(plugin))), _a);
-      return NewOctokit;
-    }
+      hook.wrap("request", auth.hook);
+      this.auth = auth;
+    } // apply plugins
+    // https://stackoverflow.com/a/16345172
 
+
+    const classConstructor = this.constructor;
+    classConstructor.plugins.forEach(plugin => {
+      Object.assign(this, plugin(this, options));
+    });
   }
 
-  Octokit.VERSION = VERSION;
-  Octokit.plugins = [];
-  return Octokit;
-})();
+  static defaults(defaults) {
+    const OctokitWithDefaults = class extends this {
+      constructor(...args) {
+        const options = args[0] || {};
+        super(Object.assign({}, defaults, options, options.userAgent && defaults.userAgent ? {
+          userAgent: `${options.userAgent} ${defaults.userAgent}`
+        } : null));
+      }
+
+    };
+    return OctokitWithDefaults;
+  }
+  /**
+   * Attach a plugin (or many) to your Octokit instance.
+   *
+   * @example
+   * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
+   */
+
+
+  static plugin(p1, ...p2) {
+    var _a;
+
+    if (p1 instanceof Array) {
+      console.warn(["Passing an array of plugins to Octokit.plugin() has been deprecated.", "Instead of:", "  Octokit.plugin([plugin1, plugin2, ...])", "Use:", "  Octokit.plugin(plugin1, plugin2, ...)"].join("\n"));
+    }
+
+    const currentPlugins = this.plugins;
+    let newPlugins = [...(p1 instanceof Array ? p1 : [p1]), ...p2];
+    const NewOctokit = (_a = class extends this {}, _a.plugins = currentPlugins.concat(newPlugins.filter(plugin => !currentPlugins.includes(plugin))), _a);
+    return NewOctokit;
+  }
+
+}
+Octokit.VERSION = VERSION;
+Octokit.plugins = [];
 
 exports.Octokit = Octokit;
 //# sourceMappingURL=index.js.map
@@ -6888,162 +6818,6 @@ module.exports = require("net");
 
 /***/ }),
 
-/***/ 638:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var endpoint = __webpack_require__(385);
-var universalUserAgent = __webpack_require__(796);
-var isPlainObject = _interopDefault(__webpack_require__(696));
-var nodeFetch = _interopDefault(__webpack_require__(454));
-var requestError = __webpack_require__(463);
-
-const VERSION = "5.4.2";
-
-function getBufferResponse(response) {
-  return response.arrayBuffer();
-}
-
-function fetchWrapper(requestOptions) {
-  if (isPlainObject(requestOptions.body) || Array.isArray(requestOptions.body)) {
-    requestOptions.body = JSON.stringify(requestOptions.body);
-  }
-
-  let headers = {};
-  let status;
-  let url;
-  const fetch = requestOptions.request && requestOptions.request.fetch || nodeFetch;
-  return fetch(requestOptions.url, Object.assign({
-    method: requestOptions.method,
-    body: requestOptions.body,
-    headers: requestOptions.headers,
-    redirect: requestOptions.redirect
-  }, requestOptions.request)).then(response => {
-    url = response.url;
-    status = response.status;
-
-    for (const keyAndValue of response.headers) {
-      headers[keyAndValue[0]] = keyAndValue[1];
-    }
-
-    if (status === 204 || status === 205) {
-      return;
-    } // GitHub API returns 200 for HEAD requests
-
-
-    if (requestOptions.method === "HEAD") {
-      if (status < 400) {
-        return;
-      }
-
-      throw new requestError.RequestError(response.statusText, status, {
-        headers,
-        request: requestOptions
-      });
-    }
-
-    if (status === 304) {
-      throw new requestError.RequestError("Not modified", status, {
-        headers,
-        request: requestOptions
-      });
-    }
-
-    if (status >= 400) {
-      return response.text().then(message => {
-        const error = new requestError.RequestError(message, status, {
-          headers,
-          request: requestOptions
-        });
-
-        try {
-          let responseBody = JSON.parse(error.message);
-          Object.assign(error, responseBody);
-          let errors = responseBody.errors; // Assumption `errors` would always be in Array format
-
-          error.message = error.message + ": " + errors.map(JSON.stringify).join(", ");
-        } catch (e) {// ignore, see octokit/rest.js#684
-        }
-
-        throw error;
-      });
-    }
-
-    const contentType = response.headers.get("content-type");
-
-    if (/application\/json/.test(contentType)) {
-      return response.json();
-    }
-
-    if (!contentType || /^text\/|charset=utf-8$/.test(contentType)) {
-      return response.text();
-    }
-
-    return getBufferResponse(response);
-  }).then(data => {
-    return {
-      status,
-      url,
-      headers,
-      data
-    };
-  }).catch(error => {
-    if (error instanceof requestError.RequestError) {
-      throw error;
-    }
-
-    throw new requestError.RequestError(error.message, 500, {
-      headers,
-      request: requestOptions
-    });
-  });
-}
-
-function withDefaults(oldEndpoint, newDefaults) {
-  const endpoint = oldEndpoint.defaults(newDefaults);
-
-  const newApi = function (route, parameters) {
-    const endpointOptions = endpoint.merge(route, parameters);
-
-    if (!endpointOptions.request || !endpointOptions.request.hook) {
-      return fetchWrapper(endpoint.parse(endpointOptions));
-    }
-
-    const request = (route, parameters) => {
-      return fetchWrapper(endpoint.parse(endpoint.merge(route, parameters)));
-    };
-
-    Object.assign(request, {
-      endpoint,
-      defaults: withDefaults.bind(null, endpoint)
-    });
-    return endpointOptions.request.hook(request, endpointOptions);
-  };
-
-  return Object.assign(newApi, {
-    endpoint,
-    defaults: withDefaults.bind(null, endpoint)
-  });
-}
-
-const request = withDefaults(endpoint.endpoint, {
-  headers: {
-    "user-agent": `octokit-request.js/${VERSION} ${universalUserAgent.getUserAgent()}`
-  }
-});
-
-exports.request = request;
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
-
 /***/ 654:
 /***/ (function(module) {
 
@@ -7303,9 +7077,9 @@ var endpoint = __webpack_require__(385);
 var universalUserAgent = __webpack_require__(796);
 var isPlainObject = _interopDefault(__webpack_require__(696));
 var nodeFetch = _interopDefault(__webpack_require__(454));
-var requestError = __webpack_require__(257);
+var requestError = __webpack_require__(463);
 
-const VERSION = "5.4.4";
+const VERSION = "5.4.5";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
@@ -9662,10 +9436,10 @@ module.exports = {
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-var request = __webpack_require__(638);
+var request = __webpack_require__(753);
 var universalUserAgent = __webpack_require__(796);
 
-const VERSION = "4.4.0";
+const VERSION = "4.5.1";
 
 class GraphqlError extends Error {
   constructor(request, response) {
